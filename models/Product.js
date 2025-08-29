@@ -1,4 +1,4 @@
-// 8. MODELS/PRODUCT.JS
+// ATUALIZAR MODEL PRODUCT (models/Product.js)
 // ==========================================
 import mongoose from 'mongoose';
 
@@ -19,7 +19,7 @@ const ProductSchema = new mongoose.Schema(
       required: true,
     },
     type: String, // fritos, congelados
-    image: String,
+    image: String, // ← ADICIONAR CAMPO DE IMAGEM
     rating: {
       type: Number,
       default: 4.5,

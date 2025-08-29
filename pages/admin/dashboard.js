@@ -1,4 +1,5 @@
-// 19. PAGES/ADMIN/DASHBOARD.JS
+// ==========================================
+// PAGES/ADMIN/DASHBOARD.JS - ARQUIVO COMPLETO
 // ==========================================
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
@@ -18,7 +19,151 @@ import {
   AlertCircle,
   DollarSign,
   TrendingUp,
+  Image as ImageIcon,
+  Loader,
 } from 'lucide-react';
+
+// ==========================================
+// COMPONENTE DE UPLOAD DE IMAGEM
+// ==========================================
+const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
+  const [preview, setPreview] = useState(currentImage || null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleFileSelect = async file => {
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      alert('Por favor, selecione apenas arquivos de imagem.');
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Arquivo muito grande. Máximo 5MB.');
+      return;
+    }
+
+    // Mostrar preview imediatamente
+    const reader = new FileReader();
+    reader.onload = e => {
+      setPreview(e.target.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload do arquivo
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onImageUpload(data.url); // URL da Cloudinary
+      } else {
+        throw new Error('Erro no upload');
+      }
+    } catch (error) {
+      console.error('Erro no upload:', error);
+      alert('Erro ao fazer upload da imagem');
+      setPreview(currentImage); // Voltar para imagem anterior
+    }
+  };
+
+  const handleDragOver = e => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = e => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = e => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files[0]) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const removeImage = () => {
+    setPreview(null);
+    onImageUpload(null);
+  };
+
+  return (
+    <div className='space-y-4'>
+      <label className='block text-sm font-medium text-gray-700'>
+        Imagem do Produto
+      </label>
+
+      {preview ? (
+        // Preview da imagem
+        <div className='relative'>
+          <img
+            src={preview}
+            alt='Preview'
+            className='w-full h-48 object-cover rounded-lg border'
+          />
+          <button
+            type='button'
+            onClick={removeImage}
+            className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600'
+            disabled={isUploading}
+          >
+            <X className='w-4 h-4' />
+          </button>
+          {isUploading && (
+            <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg'>
+              <Loader className='w-8 h-8 text-white animate-spin' />
+            </div>
+          )}
+        </div>
+      ) : (
+        // Área de upload
+        <div
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+            isDragging
+              ? 'border-amber-500 bg-amber-50'
+              : 'border-gray-300 hover:border-amber-400 hover:bg-amber-50'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          <ImageIcon className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+          <p className='text-gray-600 mb-2'>
+            Arraste uma imagem aqui ou clique para selecionar
+          </p>
+          <p className='text-sm text-gray-500 mb-4'>PNG, JPG até 5MB</p>
+          <input
+            type='file'
+            accept='image/*'
+            onChange={e => handleFileSelect(e.target.files[0])}
+            className='hidden'
+            id='image-upload'
+            disabled={isUploading}
+          />
+          <label
+            htmlFor='image-upload'
+            className='bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2'
+          >
+            <Upload className='w-4 h-4' />
+            {isUploading ? 'Enviando...' : 'Selecionar Imagem'}
+          </label>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Componente de Notificação
 const Notification = ({ message, type, onClose }) => {
@@ -224,6 +369,7 @@ const OverviewTab = ({ orders }) => {
 const ProductsTab = ({ products, setProducts, setNotification }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -232,12 +378,31 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
     type: '',
     rating: 4.5,
     reviews: 0,
+    image: null,
   });
+
+  const handleImageUpload = imageUrl => {
+    setFormData(prev => ({ ...prev, image: imageUrl }));
+    setNotification({
+      message: 'Imagem carregada com sucesso!',
+      type: 'success',
+    });
+  };
 
   const handleSubmit = async e => {
     e.preventDefault();
 
+    if (!formData.name || !formData.price) {
+      setNotification({
+        message: 'Nome e preço são obrigatórios',
+        type: 'error',
+      });
+      return;
+    }
+
     try {
+      setIsUploading(true);
+
       const url = editingProduct
         ? `/api/products/${editingProduct._id}`
         : '/api/products';
@@ -261,12 +426,19 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
           setProducts(prev =>
             prev.map(p => (p._id === product._id ? product : p))
           );
-          setNotification({ message: 'Produto atualizado!', type: 'success' });
+          setNotification({
+            message: 'Produto atualizado com sucesso!',
+            type: 'success',
+          });
         } else {
           setProducts(prev => [...prev, product]);
-          setNotification({ message: 'Produto criado!', type: 'success' });
+          setNotification({
+            message: 'Produto criado com sucesso!',
+            type: 'success',
+          });
         }
 
+        // Reset form
         setFormData({
           name: '',
           description: '',
@@ -275,12 +447,18 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
           type: '',
           rating: 4.5,
           reviews: 0,
+          image: null,
         });
         setShowAddForm(false);
         setEditingProduct(null);
+      } else {
+        throw new Error('Erro ao salvar produto');
       }
     } catch (error) {
+      console.error('Erro:', error);
       setNotification({ message: 'Erro ao salvar produto', type: 'error' });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -294,6 +472,7 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
       type: product.type || '',
       rating: product.rating,
       reviews: product.reviews,
+      image: product.image || null,
     });
     setShowAddForm(true);
   };
@@ -308,7 +487,10 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
 
       if (response.ok) {
         setProducts(prev => prev.filter(p => p._id !== productId));
-        setNotification({ message: 'Produto excluído!', type: 'success' });
+        setNotification({
+          message: 'Produto excluído com sucesso!',
+          type: 'success',
+        });
       }
     } catch (error) {
       setNotification({ message: 'Erro ao excluir produto', type: 'error' });
@@ -335,6 +517,15 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
             <thead className='bg-gray-50'>
               <tr>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                  Imagem
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                  Nome
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
+                  Categoria
+                </th>
+                <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
                   Preço
                 </th>
                 <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase'>
@@ -349,6 +540,19 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
               {products.map(product => (
                 <tr key={product._id}>
                   <td className='px-6 py-4'>
+                    {product.image ? (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className='w-16 h-16 object-cover rounded-lg'
+                      />
+                    ) : (
+                      <div className='w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center'>
+                        <ImageIcon className='w-6 h-6 text-gray-400' />
+                      </div>
+                    )}
+                  </td>
+                  <td className='px-6 py-4'>
                     <div>
                       <div className='text-sm font-medium text-gray-900'>
                         {product.name}
@@ -360,7 +564,7 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                       )}
                     </div>
                   </td>
-                  <td className='px-6 py-4 text-sm text-gray-900'>
+                  <td className='px-6 py-4 text-sm text-gray-900 capitalize'>
                     {product.category}
                   </td>
                   <td className='px-6 py-4 text-sm font-bold text-amber-600'>
@@ -372,13 +576,13 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   <td className='px-6 py-4 text-sm font-medium space-x-2'>
                     <button
                       onClick={() => handleEdit(product)}
-                      className='text-blue-600 hover:text-blue-900'
+                      className='text-blue-600 hover:text-blue-900 p-1'
                     >
                       <Edit className='w-4 h-4' />
                     </button>
                     <button
                       onClick={() => handleDelete(product._id)}
-                      className='text-red-600 hover:text-red-900'
+                      className='text-red-600 hover:text-red-900 p-1'
                     >
                       <Trash2 className='w-4 h-4' />
                     </button>
@@ -393,8 +597,8 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
       {/* Modal de Adicionar/Editar Produto */}
       {showAddForm && (
         <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-md'>
-            <div className='flex justify-between items-center mb-4'>
+          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto'>
+            <div className='flex justify-between items-center mb-6'>
               <h3 className='text-xl font-bold'>
                 {editingProduct ? 'Editar Produto' : 'Novo Produto'}
               </h3>
@@ -410,24 +614,50 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                     type: '',
                     rating: 4.5,
                     reviews: 0,
+                    image: null,
                   });
                 }}
+                disabled={isUploading}
               >
                 <X className='w-6 h-6' />
               </button>
             </div>
 
-            <div onSubmit={handleSubmit} className='space-y-4'>
-              <input
-                type='text'
-                placeholder='Nome do produto *'
-                value={formData.name}
-                onChange={e =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className='w-full p-3 border rounded-lg'
-                required
+            <div className='space-y-6'>
+              {/* Upload de Imagem */}
+              <ImageUpload
+                currentImage={formData.image}
+                onImageUpload={handleImageUpload}
+                isUploading={isUploading}
               />
+
+              {/* Campos do formulário */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <input
+                  type='text'
+                  placeholder='Nome do produto *'
+                  value={formData.name}
+                  onChange={e =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  className='w-full p-3 border rounded-lg'
+                  required
+                  disabled={isUploading}
+                />
+
+                <input
+                  type='number'
+                  step='0.01'
+                  placeholder='Preço *'
+                  value={formData.price}
+                  onChange={e =>
+                    setFormData({ ...formData, price: e.target.value })
+                  }
+                  className='w-full p-3 border rounded-lg'
+                  required
+                  disabled={isUploading}
+                />
+              </div>
 
               <textarea
                 placeholder='Descrição'
@@ -436,42 +666,33 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className='w-full p-3 border rounded-lg h-20'
+                disabled={isUploading}
               />
 
-              <input
-                type='number'
-                step='0.01'
-                placeholder='Preço *'
-                value={formData.price}
-                onChange={e =>
-                  setFormData({ ...formData, price: e.target.value })
-                }
-                className='w-full p-3 border rounded-lg'
-                required
-              />
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+                <select
+                  value={formData.category}
+                  onChange={e =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  className='w-full p-3 border rounded-lg'
+                  disabled={isUploading}
+                >
+                  <option value='pacotes'>Pacotes</option>
+                  <option value='kits'>Kits</option>
+                </select>
 
-              <select
-                value={formData.category}
-                onChange={e =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
-                className='w-full p-3 border rounded-lg'
-              >
-                <option value='pacotes'>Pacotes</option>
-                <option value='kits'>Kits</option>
-              </select>
+                <input
+                  type='text'
+                  placeholder='Tipo (Fritos, Congelados)'
+                  value={formData.type}
+                  onChange={e =>
+                    setFormData({ ...formData, type: e.target.value })
+                  }
+                  className='w-full p-3 border rounded-lg'
+                  disabled={isUploading}
+                />
 
-              <input
-                type='text'
-                placeholder='Tipo (ex: Fritos, Congelados)'
-                value={formData.type}
-                onChange={e =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
-                className='w-full p-3 border rounded-lg'
-              />
-
-              <div className='grid grid-cols-2 gap-4'>
                 <input
                   type='number'
                   step='0.1'
@@ -483,34 +704,47 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                     setFormData({ ...formData, rating: e.target.value })
                   }
                   className='w-full p-3 border rounded-lg'
-                />
-                <input
-                  type='number'
-                  placeholder='Nº de avaliações'
-                  value={formData.reviews}
-                  onChange={e =>
-                    setFormData({ ...formData, reviews: e.target.value })
-                  }
-                  className='w-full p-3 border rounded-lg'
+                  disabled={isUploading}
                 />
               </div>
 
-              <div className='flex gap-3'>
+              <div className='flex gap-3 pt-4 border-t'>
                 <button
                   type='button'
                   onClick={() => {
                     setShowAddForm(false);
                     setEditingProduct(null);
+                    setFormData({
+                      name: '',
+                      description: '',
+                      price: '',
+                      category: 'pacotes',
+                      type: '',
+                      rating: 4.5,
+                      reviews: 0,
+                      image: null,
+                    });
                   }}
-                  className='flex-1 py-3 border border-gray-300 rounded-lg'
+                  className='flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50'
+                  disabled={isUploading}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className='flex-1 py-3 bg-amber-500 text-white rounded-lg font-bold'
+                  disabled={isUploading}
+                  className='flex-1 py-3 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2'
                 >
-                  {editingProduct ? 'Atualizar' : 'Criar'}
+                  {isUploading ? (
+                    <>
+                      <Loader className='w-4 h-4 animate-spin' />
+                      {editingProduct ? 'Atualizando...' : 'Criando...'}
+                    </>
+                  ) : editingProduct ? (
+                    'Atualizar Produto'
+                  ) : (
+                    'Criar Produto'
+                  )}
                 </button>
               </div>
             </div>

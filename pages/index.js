@@ -1,4 +1,5 @@
-// 17. PAGES/INDEX.JS (PÁGINA PRINCIPAL)
+// ==========================================
+// PAGES/INDEX.JS - CORRIGIDO COM IMAGENS
 // ==========================================
 import { useState, useEffect } from 'react';
 import {
@@ -12,14 +13,8 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  Image as ImageIcon,
 } from 'lucide-react';
-
-// Context do Carrinho (simplificado)
-let cartState = {
-  items: [],
-  isOpen: false,
-  coupon: null,
-};
 
 // Componente de Notificação
 const Notification = ({ message, type, onClose }) => {
@@ -52,20 +47,20 @@ const Header = ({ cartItems, setCartOpen }) => {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <header className='bg-white shadow-md sticky top-0 z-40'>
-      <div className='max-w-7xl mx-auto px-4 h-16 flex justify-between items-center'>
+    <header className='bg-gradient-to-r from-gray-900 via-gray-800 to-amber-600 shadow-lg sticky top-0 z-40'>
+      <div className='max-w-7xl mx-auto px-4 h-20 flex justify-between items-center text-white'>
         <div className='flex items-center'>
-          <Package className='w-8 h-8 text-amber-500 mr-2' />
-          <h1 className='text-xl font-bold'>Salgados Premium</h1>
+          <Package className='w-9 h-9 text-amber-400 mr-3' />
+          <h1 className='text-2xl font-bold tracking-wide'>Salgados Premium</h1>
         </div>
 
         <button
           onClick={() => setCartOpen(true)}
-          className='relative p-2 text-gray-700 hover:text-amber-500'
+          className='relative p-3 hover:text-amber-400 transition-colors'
         >
-          <ShoppingCart className='w-6 h-6' />
+          <ShoppingCart className='w-7 h-7' />
           {totalItems > 0 && (
-            <span className='absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center'>
+            <span className='absolute -top-1 -right-1 bg-amber-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md'>
               {totalItems}
             </span>
           )}
@@ -75,7 +70,7 @@ const Header = ({ cartItems, setCartOpen }) => {
   );
 };
 
-// Componente do Card de Produto
+// Componente do Card de Produto - CORRIGIDO COM IMAGENS
 const ProductCard = ({ product, onAddToCart }) => {
   const renderStars = rating => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -92,9 +87,45 @@ const ProductCard = ({ product, onAddToCart }) => {
 
   return (
     <div className='bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow'>
-      <div className='h-48 bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center'>
-        <Package className='w-16 h-16 text-amber-500' />
+      {/* SEÇÃO DA IMAGEM CORRIGIDA */}
+      <div className='h-48 relative'>
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className='w-full h-full object-cover'
+            onError={e => {
+              // Fallback caso a imagem não carregue
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+          />
+        ) : null}
+
+        {/* Fallback quando não tem imagem ou erro no carregamento */}
+        <div
+          className={`w-full h-full bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center ${
+            product.image ? 'hidden' : 'flex'
+          }`}
+        >
+          <ImageIcon className='w-16 h-16 text-amber-500' />
+        </div>
+
+        {/* Badge para produtos em destaque */}
+        {product.rating >= 4.8 && (
+          <div className='absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold'>
+            ⭐ Top
+          </div>
+        )}
+
+        {/* Badge para categoria */}
+        {product.category === 'kits' && (
+          <div className='absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold'>
+            KIT
+          </div>
+        )}
       </div>
+
       <div className='p-4'>
         <h3 className='text-lg font-bold'>{product.name}</h3>
         {product.type && (
@@ -115,7 +146,7 @@ const ProductCard = ({ product, onAddToCart }) => {
           </span>
           <button
             onClick={() => onAddToCart(product)}
-            className='bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2'
+            className='bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 flex items-center gap-2 transition-colors'
           >
             <Plus className='w-4 h-4' />
             Adicionar
@@ -283,14 +314,30 @@ const Cart = ({ isOpen, onClose, cartItems, setCartItems }) => {
                   key={item.id}
                   className='flex justify-between items-center border-b py-3'
                 >
-                  <div className='flex-1'>
-                    <h3 className='font-medium'>{item.name}</h3>
-                    {item.type && (
-                      <p className='text-sm text-gray-600'>{item.type}</p>
-                    )}
-                    <p className='text-amber-600 font-bold'>
-                      €{item.price.toFixed(2)}
-                    </p>
+                  {/* IMAGEM NO CARRINHO TAMBÉM */}
+                  <div className='flex gap-3 flex-1'>
+                    <div className='w-16 h-16 flex-shrink-0'>
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className='w-full h-full object-cover rounded-lg'
+                        />
+                      ) : (
+                        <div className='w-full h-full bg-gray-200 rounded-lg flex items-center justify-center'>
+                          <ImageIcon className='w-6 h-6 text-gray-400' />
+                        </div>
+                      )}
+                    </div>
+                    <div className='flex-1'>
+                      <h3 className='font-medium'>{item.name}</h3>
+                      {item.type && (
+                        <p className='text-sm text-gray-600'>{item.type}</p>
+                      )}
+                      <p className='text-amber-600 font-bold'>
+                        €{item.price.toFixed(2)}
+                      </p>
+                    </div>
                   </div>
                   <div className='flex items-center gap-2'>
                     <button
@@ -531,6 +578,7 @@ export default function Home() {
     try {
       const response = await fetch('/api/products');
       const data = await response.json();
+      console.log('Produtos carregados:', data); // Para debug
       setProducts(data);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
@@ -555,7 +603,7 @@ export default function Home() {
   const filteredProducts = products.filter(p => p.category === activeCategory);
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-100'>
       {notification && (
         <Notification
           message={notification.message}
@@ -574,32 +622,48 @@ export default function Home() {
       />
 
       {/* Hero */}
-      <section className='bg-gradient-to-r from-amber-500 to-orange-500 text-white py-20'>
-        <div className='max-w-7xl mx-auto px-4 text-center'>
-          <h2 className='text-4xl md:text-6xl font-bold mb-6'>
+      <section className='relative text-white py-16 md:py-20 min-h-[400px] md:min-h-[600px] flex items-center justify-center'>
+        {/* Background para desktop */}
+        <div
+          className='absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block'
+          style={{ backgroundImage: 'url(/salgado-hero.jpg)' }}
+        ></div>
+
+        {/* Background para mobile */}
+        <div
+          className='absolute inset-0 bg-cover bg-center bg-no-repeat block md:hidden'
+          style={{ backgroundImage: 'url(/salgado-hero-mobile.jpg)' }}
+        ></div>
+
+        {/* Overlay escuro para legibilidade do texto */}
+        <div className='absolute inset-0 bg-black bg-opacity-10'></div>
+
+        {/* Conteúdo centralizado */}
+        <div className='relative max-w-7xl mx-auto px-4 text-center'>
+          <h2 className='text-3xl md:text-6xl font-bold mb-4 md:mb-6 drop-shadow-lg'>
             Salgados Artesanais
           </h2>
-          <p className='text-xl md:text-2xl mb-8'>
+          <p className='text-lg md:text-2xl mb-6 md:mb-8 drop-shadow-md'>
             Os melhores salgados para seus eventos
           </p>
-          <p className='text-lg opacity-90'>
+          <p className='text-base md:text-lg opacity-90 drop-shadow-md'>
             Coxinha, Rissol, Pastel de Bacalhau e muito mais!
           </p>
         </div>
       </section>
 
       {/* Cupons */}
-      <section className='py-8 bg-gradient-to-r from-green-500 to-teal-500 text-white'>
+      <section className='py-6 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white shadow-inner'>
         <div className='max-w-7xl mx-auto px-4 text-center'>
-          <h3 className='text-2xl font-bold mb-4'>🎉 Cupons Disponíveis!</h3>
+          <h3 className='text-3xl font-bold mb-4'>Cupons Disponíveis!</h3>
           <div className='flex justify-center gap-4 flex-wrap'>
-            <div className='bg-white bg-opacity-20 px-4 py-2 rounded-lg'>
+            <div className='bg-white bg-opacity-25 px-4 py-2 rounded-lg shadow-md'>
               <strong>PRIMEIRA10</strong> - 10% primeira compra
             </div>
-            <div className='bg-white bg-opacity-20 px-4 py-2 rounded-lg'>
+            <div className='bg-white bg-opacity-25 px-4 py-2 rounded-lg shadow-md'>
               <strong>FESTAS15</strong> - 15% para festas
             </div>
-            <div className='bg-white bg-opacity-20 px-4 py-2 rounded-lg'>
+            <div className='bg-white bg-opacity-25 px-4 py-2 rounded-lg shadow-md'>
               <strong>AMIGO5</strong> - 5% para amigos
             </div>
           </div>
@@ -609,23 +673,23 @@ export default function Home() {
       {/* Produtos */}
       <div className='max-w-7xl mx-auto px-4 py-8'>
         <div className='flex justify-center mb-8'>
-          <div className='flex bg-white rounded-lg shadow-md overflow-hidden'>
+          <div className='flex bg-gray-100 rounded-lg shadow-md overflow-hidden'>
             <button
               onClick={() => setActiveCategory('pacotes')}
-              className={`px-6 py-3 font-medium ${
+              className={`px-6 py-3 font-medium transition-colors ${
                 activeCategory === 'pacotes'
                   ? 'bg-amber-500 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-700 hover:bg-gray-200'
               }`}
             >
               Pacotes Salgados
             </button>
             <button
               onClick={() => setActiveCategory('kits')}
-              className={`px-6 py-3 font-medium ${
+              className={`px-6 py-3 font-medium transition-colors ${
                 activeCategory === 'kits'
                   ? 'bg-amber-500 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-700 hover:bg-gray-200'
               }`}
             >
               Kits Doces e Salgados
@@ -655,8 +719,8 @@ export default function Home() {
             Os melhores salgados artesanais para seus eventos
           </p>
           <div className='mt-4 flex justify-center gap-4'>
-            <span>📱 WhatsApp: +351 912 345 678</span>
-            <span>📧 contato@salgadospremium.pt</span>
+            <span>WhatsApp: +351 912 345 678</span>
+            <span>contato@salgadospremium.pt</span>
           </div>
         </div>
       </footer>
