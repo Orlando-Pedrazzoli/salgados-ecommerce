@@ -361,7 +361,7 @@ ${orderData.notes ? `\n📝 *Observações:* ${orderData.notes}` : ''}
 
       // Abrir WhatsApp com mensagem
       window.open(
-        `https://wa.me/351912345678?text=${encodeURIComponent(message)}`,
+        `https://wa.me/351912164220?text=${encodeURIComponent(message)}`,
         '_blank'
       );
 
@@ -1068,7 +1068,7 @@ export default function Home() {
           </p>
           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <a
-              href='https://wa.me/351912345678'
+              href='https://wa.me/351912164220'
               target='_blank'
               rel='noopener noreferrer'
               className='bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-full font-bold transition-all shadow-lg flex items-center justify-center gap-2'
