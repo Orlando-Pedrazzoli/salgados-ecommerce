@@ -77,8 +77,8 @@ const Cart = ({ isOpen, onClose, cartItems, setCartItems }) => {
 
   return (
     <>
-      <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-end'>
-        <div className='bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl'>
+      <div className='fixed inset-0 bg-black bg-opacity-50 z-[9990] flex justify-end'>
+        <div className='bg-white w-full max-w-md h-full overflow-y-auto shadow-2xl relative z-[9991]'>
           <div className='sticky top-0 bg-white p-4 border-b flex justify-between items-center shadow-sm'>
             <h2 className='text-xl font-bold flex items-center gap-2'>
               <ShoppingCart className='w-5 h-5' />

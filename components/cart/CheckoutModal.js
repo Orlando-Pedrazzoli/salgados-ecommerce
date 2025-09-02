@@ -164,8 +164,8 @@ ${orderData.notes ? `\n📝 *Observações:* ${orderData.notes}` : ''}
   if (!isOpen) return null;
 
   return (
-    <div className='fixed inset-0 bg-black bg-opacity-50 z-60 flex items-center justify-center p-4'>
-      <div className='bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl'>
+    <div className='fixed inset-0 bg-black bg-opacity-50 z-[9999] flex items-center justify-center p-4'>
+      <div className='bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl relative z-[10000]'>
         <div className='flex justify-between items-center mb-4'>
           <h3 className='text-xl font-bold flex items-center gap-2'>
             <CreditCard className='w-5 h-5 text-amber-600' />

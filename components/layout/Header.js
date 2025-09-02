@@ -5,7 +5,7 @@ const Header = ({ cartItems, setCartOpen }) => {
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
-    <header className='bg-gradient-to-r from-gray-900 via-gray-800 to-amber-600 shadow-lg sticky top-0 z-40'>
+    <header className='bg-gradient-to-r from-gray-900 via-gray-800 to-amber-600 shadow-lg sticky top-0 z-30'>
       <div className='max-w-7xl mx-auto px-4 h-20 flex justify-between items-center text-white'>
         <div className='flex items-center'>
           <Package className='w-9 h-9 text-amber-400 mr-3' />
