@@ -1,11 +1,16 @@
-// COMPONENTE DE UPLOAD DE IMAGEM
-// ==========================================
-import { useState } from 'react';
+// components/ImageUpload.js - VERSÃO CORRIGIDA
+import { useState, useEffect } from 'react';
 import { Upload, X, Image as ImageIcon, Loader } from 'lucide-react';
 
 const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
-  const [preview, setPreview] = useState(currentImage || null);
+  const [preview, setPreview] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  // Atualizar preview quando currentImage mudar
+  useEffect(() => {
+    setPreview(currentImage);
+  }, [currentImage]);
 
   const handleFileSelect = async file => {
     if (!file) return;
@@ -30,6 +35,7 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
     reader.readAsDataURL(file);
 
     // Upload do arquivo
+    setUploading(true);
     const formData = new FormData();
     formData.append('image', file);
 
@@ -43,12 +49,15 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
         const data = await response.json();
         onImageUpload(data.url); // URL da Cloudinary
       } else {
-        throw new Error('Erro no upload');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro no upload');
       }
     } catch (error) {
       console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload da imagem');
+      alert('Erro ao fazer upload da imagem: ' + error.message);
       setPreview(currentImage); // Voltar para imagem anterior
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -76,6 +85,8 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
     onImageUpload(null);
   };
 
+  const isCurrentlyUploading = uploading || isUploading;
+
   return (
     <div className='space-y-4'>
       <label className='block text-sm font-medium text-gray-700'>
@@ -94,13 +105,16 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
             type='button'
             onClick={removeImage}
             className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600'
-            disabled={isUploading}
+            disabled={isCurrentlyUploading}
           >
             <X className='w-4 h-4' />
           </button>
-          {isUploading && (
+          {isCurrentlyUploading && (
             <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg'>
-              <Loader className='w-8 h-8 text-white animate-spin' />
+              <div className='flex flex-col items-center gap-2'>
+                <Loader className='w-8 h-8 text-white animate-spin' />
+                <span className='text-white text-sm'>Enviando...</span>
+              </div>
             </div>
           )}
         </div>
@@ -127,17 +141,30 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
             onChange={e => handleFileSelect(e.target.files[0])}
             className='hidden'
             id='image-upload'
-            disabled={isUploading}
+            disabled={isCurrentlyUploading}
           />
           <label
             htmlFor='image-upload'
-            className='bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2'
+            className={`bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2 ${
+              isCurrentlyUploading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            <Upload className='w-4 h-4' />
-            {isUploading ? 'Enviando...' : 'Selecionar Imagem'}
+            {isCurrentlyUploading ? (
+              <>
+                <Loader className='w-4 h-4 animate-spin' />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <Upload className='w-4 h-4' />
+                Selecionar Imagem
+              </>
+            )}
           </label>
         </div>
       )}
     </div>
   );
 };
+
+export default ImageUpload;

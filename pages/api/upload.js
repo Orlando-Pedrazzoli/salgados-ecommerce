@@ -1,6 +1,4 @@
-// API DE UPLOAD ATUALIZADA
-// ==========================================
-// pages/api/upload.js
+// pages/api/upload.js - VERSÃO CORRIGIDA
 import cloudinary from '../../lib/cloudinary';
 import multer from 'multer';
 import { promisify } from 'util';
@@ -22,17 +20,27 @@ const upload = multer({
 
 const uploadMiddleware = promisify(upload.single('image'));
 
+// Desabilitar o parser padrão do Next.js
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    console.log('Iniciando upload...');
+
     // Processar upload com multer
     await uploadMiddleware(req, res);
 
     const file = req.file;
     if (!file) {
+      console.log('Nenhum arquivo encontrado');
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
 
@@ -52,6 +60,7 @@ export default async function handler(req, res) {
               { width: 800, height: 600, crop: 'fill', quality: 'auto' },
               { fetch_format: 'auto' },
             ],
+            resource_type: 'image',
           },
           (error, result) => {
             if (error) {
@@ -81,15 +90,16 @@ export default async function handler(req, res) {
         .json({ error: 'Arquivo muito grande. Máximo 5MB.' });
     }
 
+    if (error.message === 'Apenas arquivos de imagem são permitidos') {
+      return res
+        .status(400)
+        .json({ error: 'Apenas arquivos de imagem são permitidos' });
+    }
+
     res.status(500).json({
       error: 'Erro interno no upload',
-      details: error.message,
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : 'Erro interno',
     });
   }
 }
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

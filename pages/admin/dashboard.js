@@ -1,6 +1,4 @@
-// ==========================================
-// PAGES/ADMIN/DASHBOARD.JS - ARQUIVO COMPLETO
-// ==========================================
+// pages/admin/dashboard.js - VERSÃO CORRIGIDA
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -23,147 +21,8 @@ import {
   Loader,
 } from 'lucide-react';
 
-// ==========================================
-// COMPONENTE DE UPLOAD DE IMAGEM
-// ==========================================
-const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
-  const [preview, setPreview] = useState(currentImage || null);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleFileSelect = async file => {
-    if (!file) return;
-
-    // Validar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-      alert('Por favor, selecione apenas arquivos de imagem.');
-      return;
-    }
-
-    // Validar tamanho (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Arquivo muito grande. Máximo 5MB.');
-      return;
-    }
-
-    // Mostrar preview imediatamente
-    const reader = new FileReader();
-    reader.onload = e => {
-      setPreview(e.target.result);
-    };
-    reader.readAsDataURL(file);
-
-    // Upload do arquivo
-    const formData = new FormData();
-    formData.append('image', file);
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        onImageUpload(data.url); // URL da Cloudinary
-      } else {
-        throw new Error('Erro no upload');
-      }
-    } catch (error) {
-      console.error('Erro no upload:', error);
-      alert('Erro ao fazer upload da imagem');
-      setPreview(currentImage); // Voltar para imagem anterior
-    }
-  };
-
-  const handleDragOver = e => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = e => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = e => {
-    e.preventDefault();
-    setIsDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    if (files[0]) {
-      handleFileSelect(files[0]);
-    }
-  };
-
-  const removeImage = () => {
-    setPreview(null);
-    onImageUpload(null);
-  };
-
-  return (
-    <div className='space-y-4'>
-      <label className='block text-sm font-medium text-gray-700'>
-        Imagem do Produto
-      </label>
-
-      {preview ? (
-        // Preview da imagem
-        <div className='relative'>
-          <img
-            src={preview}
-            alt='Preview'
-            className='w-full h-48 object-cover rounded-lg border'
-          />
-          <button
-            type='button'
-            onClick={removeImage}
-            className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600'
-            disabled={isUploading}
-          >
-            <X className='w-4 h-4' />
-          </button>
-          {isUploading && (
-            <div className='absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg'>
-              <Loader className='w-8 h-8 text-white animate-spin' />
-            </div>
-          )}
-        </div>
-      ) : (
-        // Área de upload
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            isDragging
-              ? 'border-amber-500 bg-amber-50'
-              : 'border-gray-300 hover:border-amber-400 hover:bg-amber-50'
-          }`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-        >
-          <ImageIcon className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-          <p className='text-gray-600 mb-2'>
-            Arraste uma imagem aqui ou clique para selecionar
-          </p>
-          <p className='text-sm text-gray-500 mb-4'>PNG, JPG até 5MB</p>
-          <input
-            type='file'
-            accept='image/*'
-            onChange={e => handleFileSelect(e.target.files[0])}
-            className='hidden'
-            id='image-upload'
-            disabled={isUploading}
-          />
-          <label
-            htmlFor='image-upload'
-            className='bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2'
-          >
-            <Upload className='w-4 h-4' />
-            {isUploading ? 'Enviando...' : 'Selecionar Imagem'}
-          </label>
-        </div>
-      )}
-    </div>
-  );
-};
+// Importar o componente ImageUpload
+import ImageUpload from '../../components/ImageUpload';
 
 // Componente de Notificação
 const Notification = ({ message, type, onClose }) => {
@@ -369,7 +228,7 @@ const OverviewTab = ({ orders }) => {
 const ProductsTab = ({ products, setProducts, setNotification }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -380,6 +239,21 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
     reviews: 0,
     image: null,
   });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      category: 'pacotes',
+      type: '',
+      rating: 4.5,
+      reviews: 0,
+      image: null,
+    });
+    setShowAddForm(false);
+    setEditingProduct(null);
+  };
 
   const handleImageUpload = imageUrl => {
     setFormData(prev => ({ ...prev, image: imageUrl }));
@@ -392,7 +266,7 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
   const handleSubmit = async e => {
     e.preventDefault();
 
-    if (!formData.name || !formData.price) {
+    if (!formData.name.trim() || !formData.price) {
       setNotification({
         message: 'Nome e preço são obrigatórios',
         type: 'error',
@@ -401,68 +275,69 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
     }
 
     try {
-      setIsUploading(true);
+      setIsSubmitting(true);
 
       const url = editingProduct
         ? `/api/products/${editingProduct._id}`
         : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
 
+      const productData = {
+        ...formData,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        type: formData.type.trim(),
+        price: parseFloat(formData.price),
+        rating: parseFloat(formData.rating),
+        reviews: parseInt(formData.reviews),
+      };
+
+      console.log('Enviando produto:', productData);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          price: parseFloat(formData.price),
-          rating: parseFloat(formData.rating),
-          reviews: parseInt(formData.reviews),
-        }),
+        body: JSON.stringify(productData),
       });
 
-      if (response.ok) {
-        const product = await response.json();
-
-        if (editingProduct) {
-          setProducts(prev =>
-            prev.map(p => (p._id === product._id ? product : p))
-          );
-          setNotification({
-            message: 'Produto atualizado com sucesso!',
-            type: 'success',
-          });
-        } else {
-          setProducts(prev => [...prev, product]);
-          setNotification({
-            message: 'Produto criado com sucesso!',
-            type: 'success',
-          });
-        }
-
-        // Reset form
-        setFormData({
-          name: '',
-          description: '',
-          price: '',
-          category: 'pacotes',
-          type: '',
-          rating: 4.5,
-          reviews: 0,
-          image: null,
-        });
-        setShowAddForm(false);
-        setEditingProduct(null);
-      } else {
-        throw new Error('Erro ao salvar produto');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao salvar produto');
       }
+
+      const product = await response.json();
+      console.log('Produto salvo:', product);
+
+      if (editingProduct) {
+        setProducts(prev =>
+          prev.map(p => (p._id === product._id ? product : p))
+        );
+        setNotification({
+          message: 'Produto atualizado com sucesso!',
+          type: 'success',
+        });
+      } else {
+        setProducts(prev => [...prev, product]);
+        setNotification({
+          message: 'Produto criado com sucesso!',
+          type: 'success',
+        });
+      }
+
+      resetForm();
     } catch (error) {
       console.error('Erro:', error);
-      setNotification({ message: 'Erro ao salvar produto', type: 'error' });
+      setNotification({
+        message: 'Erro ao salvar produto: ' + error.message,
+        type: 'error',
+      });
     } finally {
-      setIsUploading(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleEdit = product => {
+    console.log('Editando produto:', product);
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -481,19 +356,28 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
     if (!confirm('Tem certeza que deseja excluir este produto?')) return;
 
     try {
+      console.log('Deletando produto:', productId);
+
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        setProducts(prev => prev.filter(p => p._id !== productId));
-        setNotification({
-          message: 'Produto excluído com sucesso!',
-          type: 'success',
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao excluir produto');
       }
+
+      setProducts(prev => prev.filter(p => p._id !== productId));
+      setNotification({
+        message: 'Produto excluído com sucesso!',
+        type: 'success',
+      });
     } catch (error) {
-      setNotification({ message: 'Erro ao excluir produto', type: 'error' });
+      console.error('Erro ao excluir:', error);
+      setNotification({
+        message: 'Erro ao excluir produto: ' + error.message,
+        type: 'error',
+      });
     }
   };
 
@@ -577,12 +461,14 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                     <button
                       onClick={() => handleEdit(product)}
                       className='text-blue-600 hover:text-blue-900 p-1'
+                      title='Editar produto'
                     >
                       <Edit className='w-4 h-4' />
                     </button>
                     <button
                       onClick={() => handleDelete(product._id)}
                       className='text-red-600 hover:text-red-900 p-1'
+                      title='Excluir produto'
                     >
                       <Trash2 className='w-4 h-4' />
                     </button>
@@ -597,38 +483,26 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
       {/* Modal de Adicionar/Editar Produto */}
       {showAddForm && (
         <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto'>
+          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
             <div className='flex justify-between items-center mb-6'>
               <h3 className='text-xl font-bold'>
                 {editingProduct ? 'Editar Produto' : 'Novo Produto'}
               </h3>
               <button
-                onClick={() => {
-                  setShowAddForm(false);
-                  setEditingProduct(null);
-                  setFormData({
-                    name: '',
-                    description: '',
-                    price: '',
-                    category: 'pacotes',
-                    type: '',
-                    rating: 4.5,
-                    reviews: 0,
-                    image: null,
-                  });
-                }}
-                disabled={isUploading}
+                onClick={resetForm}
+                disabled={isSubmitting}
+                className='text-gray-400 hover:text-gray-600'
               >
                 <X className='w-6 h-6' />
               </button>
             </div>
 
-            <div className='space-y-6'>
+            <form onSubmit={handleSubmit} className='space-y-6'>
               {/* Upload de Imagem */}
               <ImageUpload
                 currentImage={formData.image}
                 onImageUpload={handleImageUpload}
-                isUploading={isUploading}
+                isUploading={isSubmitting}
               />
 
               {/* Campos do formulário */}
@@ -640,22 +514,23 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   onChange={e =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className='w-full p-3 border rounded-lg'
+                  className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
                   required
-                  disabled={isUploading}
+                  disabled={isSubmitting}
                 />
 
                 <input
                   type='number'
                   step='0.01'
+                  min='0'
                   placeholder='Preço *'
                   value={formData.price}
                   onChange={e =>
                     setFormData({ ...formData, price: e.target.value })
                   }
-                  className='w-full p-3 border rounded-lg'
+                  className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
                   required
-                  disabled={isUploading}
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -665,8 +540,8 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                 onChange={e =>
                   setFormData({ ...formData, description: e.target.value })
                 }
-                className='w-full p-3 border rounded-lg h-20'
-                disabled={isUploading}
+                className='w-full p-3 border rounded-lg h-20 focus:ring-2 focus:ring-amber-500'
+                disabled={isSubmitting}
               />
 
               <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
@@ -675,8 +550,8 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   onChange={e =>
                     setFormData({ ...formData, category: e.target.value })
                   }
-                  className='w-full p-3 border rounded-lg'
-                  disabled={isUploading}
+                  className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
+                  disabled={isSubmitting}
                 >
                   <option value='pacotes'>Pacotes</option>
                   <option value='kits'>Kits</option>
@@ -689,8 +564,8 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   onChange={e =>
                     setFormData({ ...formData, type: e.target.value })
                   }
-                  className='w-full p-3 border rounded-lg'
-                  disabled={isUploading}
+                  className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
+                  disabled={isSubmitting}
                 />
 
                 <input
@@ -701,41 +576,46 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   placeholder='Avaliação (1-5)'
                   value={formData.rating}
                   onChange={e =>
-                    setFormData({ ...formData, rating: e.target.value })
+                    setFormData({
+                      ...formData,
+                      rating: parseFloat(e.target.value) || 4.5,
+                    })
                   }
-                  className='w-full p-3 border rounded-lg'
-                  disabled={isUploading}
+                  className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
+                  disabled={isSubmitting}
                 />
               </div>
+
+              <input
+                type='number'
+                min='0'
+                placeholder='Número de avaliações'
+                value={formData.reviews}
+                onChange={e =>
+                  setFormData({
+                    ...formData,
+                    reviews: parseInt(e.target.value) || 0,
+                  })
+                }
+                className='w-full p-3 border rounded-lg focus:ring-2 focus:ring-amber-500'
+                disabled={isSubmitting}
+              />
 
               <div className='flex gap-3 pt-4 border-t'>
                 <button
                   type='button'
-                  onClick={() => {
-                    setShowAddForm(false);
-                    setEditingProduct(null);
-                    setFormData({
-                      name: '',
-                      description: '',
-                      price: '',
-                      category: 'pacotes',
-                      type: '',
-                      rating: 4.5,
-                      reviews: 0,
-                      image: null,
-                    });
-                  }}
-                  className='flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50'
-                  disabled={isUploading}
+                  onClick={resetForm}
+                  className='flex-1 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+                  disabled={isSubmitting}
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={handleSubmit}
-                  disabled={isUploading}
-                  className='flex-1 py-3 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2'
+                  type='submit'
+                  disabled={isSubmitting}
+                  className='flex-1 py-3 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors'
                 >
-                  {isUploading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader className='w-4 h-4 animate-spin' />
                       {editingProduct ? 'Atualizando...' : 'Criando...'}
@@ -747,7 +627,7 @@ const ProductsTab = ({ products, setProducts, setNotification }) => {
                   )}
                 </button>
               </div>
-            </div>
+            </form>
           </div>
         </div>
       )}
@@ -767,15 +647,22 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
         body: JSON.stringify({ status: newStatus }),
       });
 
-      if (response.ok) {
-        const updatedOrder = await response.json();
-        setOrders(prev =>
-          prev.map(order => (order._id === orderId ? updatedOrder : order))
-        );
-        setNotification({ message: 'Status atualizado!', type: 'success' });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao atualizar status');
       }
+
+      const updatedOrder = await response.json();
+      setOrders(prev =>
+        prev.map(order => (order._id === orderId ? updatedOrder : order))
+      );
+      setNotification({ message: 'Status atualizado!', type: 'success' });
     } catch (error) {
-      setNotification({ message: 'Erro ao atualizar status', type: 'error' });
+      console.error('Erro ao atualizar status:', error);
+      setNotification({
+        message: 'Erro ao atualizar status: ' + error.message,
+        type: 'error',
+      });
     }
   };
 
@@ -793,6 +680,23 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
         return 'bg-green-100 text-green-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = status => {
+    switch (status) {
+      case 'pending':
+        return 'Pendente';
+      case 'confirmed':
+        return 'Confirmado';
+      case 'preparing':
+        return 'Preparando';
+      case 'ready':
+        return 'Pronto';
+      case 'delivered':
+        return 'Entregue';
+      default:
+        return status;
     }
   };
 
@@ -850,7 +754,7 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
                       onChange={e =>
                         updateOrderStatus(order._id, e.target.value)
                       }
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                      className={`px-2 py-1 rounded-full text-xs font-medium border-0 ${getStatusColor(
                         order.status
                       )}`}
                     >
@@ -867,7 +771,8 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
                   <td className='px-6 py-4 text-sm font-medium'>
                     <button
                       onClick={() => setSelectedOrder(order)}
-                      className='text-blue-600 hover:text-blue-900'
+                      className='text-blue-600 hover:text-blue-900 p-1'
+                      title='Ver detalhes'
                     >
                       <Eye className='w-4 h-4' />
                     </button>
@@ -882,13 +787,13 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
       {/* Modal de Detalhes do Pedido */}
       {selectedOrder && (
         <div className='fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4'>
-          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-96 overflow-y-auto'>
+          <div className='bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto'>
             <div className='flex justify-between items-center mb-4'>
               <h3 className='text-xl font-bold'>
                 Pedido {selectedOrder.orderNumber}
               </h3>
               <button onClick={() => setSelectedOrder(null)}>
-                <X className='w-6 h-6' />
+                <X className='w-6 h-6 text-gray-400 hover:text-gray-600' />
               </button>
             </div>
 
@@ -935,11 +840,16 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
                         selectedOrder.status
                       )}`}
                     >
-                      {selectedOrder.status}
+                      {getStatusLabel(selectedOrder.status)}
                     </span>
                   </p>
                   <p>
-                    <strong>Pagamento:</strong> {selectedOrder.paymentMethod}
+                    <strong>Pagamento:</strong>{' '}
+                    {selectedOrder.paymentMethod === 'cash'
+                      ? 'Dinheiro'
+                      : selectedOrder.paymentMethod === 'mbway'
+                      ? 'MBWay'
+                      : 'Multibanco'}
                   </p>
                   <p>
                     <strong>Data:</strong>{' '}
@@ -980,18 +890,32 @@ const OrdersTab = ({ orders, setOrders, setNotification }) => {
               </div>
 
               <div className='border-t pt-4'>
-                <div className='flex justify-between text-lg font-bold'>
-                  <span>Total:</span>
-                  <span className='text-amber-600'>
-                    €{selectedOrder.total.toFixed(2)}
-                  </span>
+                <div className='space-y-1'>
+                  <div className='flex justify-between'>
+                    <span>Subtotal:</span>
+                    <span>€{selectedOrder.subtotal.toFixed(2)}</span>
+                  </div>
+                  {selectedOrder.discount > 0 && (
+                    <div className='flex justify-between text-green-600'>
+                      <span>Desconto:</span>
+                      <span>-€{selectedOrder.discount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className='flex justify-between text-lg font-bold border-t pt-2'>
+                    <span>Total:</span>
+                    <span className='text-amber-600'>
+                      €{selectedOrder.total.toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
 
               {selectedOrder.notes && (
                 <div>
                   <h4 className='font-bold text-gray-900 mb-2'>Observações</h4>
-                  <p className='text-gray-700'>{selectedOrder.notes}</p>
+                  <p className='text-gray-700 bg-gray-50 p-3 rounded-lg'>
+                    {selectedOrder.notes}
+                  </p>
                 </div>
               )}
             </div>
@@ -1009,6 +933,7 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [notification, setNotification] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -1018,27 +943,48 @@ export default function AdminDashboard() {
       return;
     }
     setIsAuthenticated(true);
-    fetchProducts();
-    fetchOrders();
+    loadData();
   }, [router]);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    await Promise.all([fetchProducts(), fetchOrders()]);
+    setIsLoading(false);
+  };
 
   const fetchProducts = async () => {
     try {
       const response = await fetch('/api/products');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar produtos');
+      }
       const data = await response.json();
+      console.log('Produtos carregados:', data);
       setProducts(data);
     } catch (error) {
       console.error('Erro ao carregar produtos:', error);
+      setNotification({
+        message: 'Erro ao carregar produtos',
+        type: 'error',
+      });
     }
   };
 
   const fetchOrders = async () => {
     try {
       const response = await fetch('/api/orders');
+      if (!response.ok) {
+        throw new Error('Erro ao carregar pedidos');
+      }
       const data = await response.json();
+      console.log('Pedidos carregados:', data);
       setOrders(data);
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
+      setNotification({
+        message: 'Erro ao carregar pedidos',
+        type: 'error',
+      });
     }
   };
 
@@ -1047,12 +993,12 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isLoading) {
     return (
       <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
         <div className='text-center'>
           <Package className='w-12 h-12 text-amber-500 mx-auto mb-4 animate-spin' />
-          <p>Carregando...</p>
+          <p className='text-gray-600'>Carregando dashboard...</p>
         </div>
       </div>
     );
