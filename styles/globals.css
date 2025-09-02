@@ -26,3 +26,24 @@ a {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+/* Adicione no final de styles/globals.css */
+
+/* Fix para z-index dos modais */
+.fixed[class*='z-60'] {
+  z-index: 9999 !important;
+}
+
+/* Garantir que o modal de checkout fique acima de tudo */
+div:has(> form[class*='space-y-4']) {
+  z-index: 10000 !important;
+}
+
+/* Header não deve sobrepor modais */
+header.sticky {
+  z-index: 30 !important;
+}
+
+/* Scroll to top button */
+button[aria-label='Voltar ao topo'] {
+  z-index: 40 !important;
+}
