@@ -1,4 +1,5 @@
 // pages/admin/dashboard.js - VERSÃO PROFISSIONAL MELHORADA
+import Head from 'next/head';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import {
@@ -1430,6 +1431,9 @@ export default function AdminDashboard() {
 
   return (
     <div className='min-h-screen bg-gray-50'>
+      <Head>
+        <title>Dashboard Admin - Salgados Premium</title>
+      </Head>
       <Toaster
         position='top-right'
         toastOptions={{

@@ -13,23 +13,23 @@ const ProductsSection = ({ products, isLoading, onAddToCart }) => {
       <h2 className='text-3xl font-bold text-center mb-8'>Nosso Cardápio</h2>
 
       <div className='flex justify-center mb-8'>
-        <div className='inline-flex bg-white rounded-xl shadow-lg overflow-hidden'>
+        <div className='inline-flex bg-gray-100 rounded-xl shadow-lg overflow-hidden'>
           <button
             onClick={() => setActiveCategory('pacotes')}
             className={`px-8 py-4 font-medium transition-all ${
               activeCategory === 'pacotes'
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white'
-                : 'text-gray-700 hover:bg-gray-50'
+                : 'text-gray-700 hover:bg-gray-200'
             }`}
           >
-            🥟 Pacotes Salgados
+            🥟 Salgados
           </button>
           <button
             onClick={() => setActiveCategory('kits')}
             className={`px-8 py-4 font-medium transition-all ${
               activeCategory === 'kits'
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white'
-                : 'text-gray-700 hover:bg-gray-50'
+                : 'text-gray-700 hover:bg-gray-200'
             }`}
           >
             🎁 Kits Festa

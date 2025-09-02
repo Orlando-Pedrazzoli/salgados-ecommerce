@@ -1,4 +1,4 @@
-// pages/index.js - VERSÃO LIMPA E ORGANIZADA
+// pages/index.js - VERSÃO COM SCROLL TO TOP
 import { useState, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -17,11 +17,21 @@ import CTASection from '../components/sections/CTASection';
 // Cart Component
 import Cart from '../components/cart/Cart';
 
+// Scroll Components
+import ScrollToTop from '../components/common/ScrollToTop';
+import ScrollProgressIndicator from '../components/common/ScrollProgressIndicator';
+
+// Custom Hooks
+import useSmoothScroll from '../hooks/useSmoothScroll';
+
 export default function Home() {
   const [products, setProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Ativar smooth scroll para links âncora
+  useSmoothScroll();
 
   // Carregar produtos e recuperar carrinho do localStorage
   useEffect(() => {
@@ -109,6 +119,12 @@ export default function Home() {
           },
         }}
       />
+
+      {/* Indicador de Progresso de Scroll */}
+      <ScrollProgressIndicator />
+
+      {/* Botão de Scroll to Top */}
+      <ScrollToTop />
 
       {/* Header */}
       <Header cartItems={cartItems} setCartOpen={setCartOpen} />

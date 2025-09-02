@@ -1,4 +1,5 @@
 // pages/admin/login.js - VERSÃO CORRIGIDA
+import Head from 'next/head';
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
@@ -40,6 +41,9 @@ export default function AdminLogin() {
 
   return (
     <div className='min-h-screen bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center p-4'>
+      <Head>
+        <title>Login Admin - Salgados Premium</title>
+      </Head>
       <div className='bg-white rounded-lg shadow-xl p-8 w-full max-w-md'>
         <div className='text-center mb-8'>
           <div className='bg-amber-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4'>
