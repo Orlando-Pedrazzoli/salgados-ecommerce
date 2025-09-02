@@ -1,5 +1,4 @@
-// 18. PAGES/ADMIN/LOGIN.JS
-// ==========================================
+// pages/admin/login.js - VERSÃO CORRIGIDA
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
@@ -32,6 +31,7 @@ export default function AdminLogin() {
         setError(data.error || 'Erro no login');
       }
     } catch (error) {
+      console.error('Erro no login:', error);
       setError('Erro de conexão');
     } finally {
       setIsLoading(false);
@@ -49,7 +49,7 @@ export default function AdminLogin() {
           <p className='text-gray-600'>Salgados Premium</p>
         </div>
 
-        <div onSubmit={handleSubmit} className='space-y-6'>
+        <form onSubmit={handleSubmit} className='space-y-6'>
           {error && (
             <div className='bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg'>
               {error}
@@ -69,8 +69,9 @@ export default function AdminLogin() {
                 onChange={e =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500'
+                className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent'
                 placeholder='admin@salgadospremium.pt'
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -88,13 +89,15 @@ export default function AdminLogin() {
                 onChange={e =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className='w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500'
+                className='w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent'
                 placeholder='••••••••'
+                disabled={isLoading}
               />
               <button
                 type='button'
                 onClick={() => setShowPassword(!showPassword)}
                 className='absolute right-3 top-1/2 transform -translate-y-1/2'
+                disabled={isLoading}
               >
                 {showPassword ? (
                   <EyeOff className='w-5 h-5 text-gray-400' />
@@ -106,13 +109,13 @@ export default function AdminLogin() {
           </div>
 
           <button
-            onClick={handleSubmit}
+            type='submit'
             disabled={isLoading}
-            className='w-full bg-amber-500 text-white py-3 rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50'
+            className='w-full bg-amber-500 text-white py-3 rounded-lg font-medium hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
           >
             {isLoading ? 'Entrando...' : 'Entrar'}
           </button>
-        </div>
+        </form>
 
         <div className='mt-8 pt-6 border-t border-gray-200'>
           <div className='text-sm text-gray-600 space-y-1'>

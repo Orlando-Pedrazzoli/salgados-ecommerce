@@ -1,24 +1,7 @@
 // pages/api/upload.js - VERSÃO CORRIGIDA
 import cloudinary from '../../lib/cloudinary';
-import multer from 'multer';
-import { promisify } from 'util';
-
-// Configurar multer para memória
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-  },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Apenas arquivos de imagem são permitidos'), false);
-    }
-  },
-});
-
-const uploadMiddleware = promisify(upload.single('image'));
+import formidable from 'formidable';
+import fs from 'fs';
 
 // Desabilitar o parser padrão do Next.js
 export const config = {
@@ -35,45 +18,42 @@ export default async function handler(req, res) {
   try {
     console.log('Iniciando upload...');
 
-    // Processar upload com multer
-    await uploadMiddleware(req, res);
+    // Usar formidable em vez de multer (melhor compatibilidade com Next.js)
+    const form = formidable({
+      maxFileSize: 5 * 1024 * 1024, // 5MB
+      filter: ({ mimetype }) => {
+        return mimetype && mimetype.includes('image');
+      },
+    });
 
-    const file = req.file;
+    const [fields, files] = await form.parse(req);
+
+    const file = Array.isArray(files.image) ? files.image[0] : files.image;
+
     if (!file) {
-      console.log('Nenhum arquivo encontrado');
       return res.status(400).json({ error: 'Nenhum arquivo enviado' });
     }
 
     console.log('Arquivo recebido:', {
-      originalname: file.originalname,
+      originalFilename: file.originalFilename,
       mimetype: file.mimetype,
       size: file.size,
     });
 
     // Upload para Cloudinary
-    const result = await new Promise((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          {
-            folder: 'salgados-produtos',
-            transformation: [
-              { width: 800, height: 600, crop: 'fill', quality: 'auto' },
-              { fetch_format: 'auto' },
-            ],
-            resource_type: 'image',
-          },
-          (error, result) => {
-            if (error) {
-              console.error('Erro Cloudinary:', error);
-              reject(error);
-            } else {
-              console.log('Upload success:', result.secure_url);
-              resolve(result);
-            }
-          }
-        )
-        .end(file.buffer);
+    const result = await cloudinary.uploader.upload(file.filepath, {
+      folder: 'salgados-produtos',
+      transformation: [
+        { width: 800, height: 600, crop: 'fill', quality: 'auto' },
+        { fetch_format: 'auto' },
+      ],
+      resource_type: 'image',
     });
+
+    // Limpar arquivo temporário
+    fs.unlinkSync(file.filepath);
+
+    console.log('Upload success:', result.secure_url);
 
     res.status(200).json({
       url: result.secure_url,
@@ -90,7 +70,7 @@ export default async function handler(req, res) {
         .json({ error: 'Arquivo muito grande. Máximo 5MB.' });
     }
 
-    if (error.message === 'Apenas arquivos de imagem são permitidos') {
+    if (error.message && error.message.includes('image')) {
       return res
         .status(400)
         .json({ error: 'Apenas arquivos de imagem são permitidos' });

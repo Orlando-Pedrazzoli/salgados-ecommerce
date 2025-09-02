@@ -40,18 +40,22 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
     formData.append('image', file);
 
     try {
+      console.log('Iniciando upload da imagem...');
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        onImageUpload(data.url); // URL da Cloudinary
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro no upload');
+        throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
       }
+
+      const data = await response.json();
+      console.log('Upload bem-sucedido:', data);
+
+      onImageUpload(data.url); // URL da Cloudinary
     } catch (error) {
       console.error('Erro no upload:', error);
       alert('Erro ao fazer upload da imagem: ' + error.message);
@@ -100,11 +104,15 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
             src={preview}
             alt='Preview'
             className='w-full h-48 object-cover rounded-lg border'
+            onError={e => {
+              console.error('Erro ao carregar imagem de preview');
+              e.target.src = '/placeholder-image.png'; // Fallback
+            }}
           />
           <button
             type='button'
             onClick={removeImage}
-            className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600'
+            className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors'
             disabled={isCurrentlyUploading}
           >
             <X className='w-4 h-4' />
@@ -121,20 +129,25 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
       ) : (
         // Área de upload
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
             isDragging
               ? 'border-amber-500 bg-amber-50'
               : 'border-gray-300 hover:border-amber-400 hover:bg-amber-50'
-          }`}
+          } ${isCurrentlyUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
+          onClick={() =>
+            !isCurrentlyUploading &&
+            document.getElementById('image-upload').click()
+          }
         >
           <ImageIcon className='w-12 h-12 text-gray-400 mx-auto mb-4' />
           <p className='text-gray-600 mb-2'>
             Arraste uma imagem aqui ou clique para selecionar
           </p>
           <p className='text-sm text-gray-500 mb-4'>PNG, JPG até 5MB</p>
+
           <input
             type='file'
             accept='image/*'
@@ -143,9 +156,9 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
             id='image-upload'
             disabled={isCurrentlyUploading}
           />
-          <label
-            htmlFor='image-upload'
-            className={`bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2 ${
+
+          <div
+            className={`bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 cursor-pointer inline-flex items-center gap-2 transition-colors ${
               isCurrentlyUploading ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
@@ -160,7 +173,7 @@ const ImageUpload = ({ currentImage, onImageUpload, isUploading = false }) => {
                 Selecionar Imagem
               </>
             )}
-          </label>
+          </div>
         </div>
       )}
     </div>
